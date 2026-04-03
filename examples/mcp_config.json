@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "pokedex": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/MeetRVyas/pokedex-mcp-server.git",
+        "pokedex-mcp-server"
+      ],
+      "env": {},
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  }
+}

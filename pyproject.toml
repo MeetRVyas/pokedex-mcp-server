@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pokedex-mcp-server"
+version = "0.1.0"
+description = "A simple Pokedex MCP server using FastMCP"
+authors = [
+    {name = "Meet Vyas", email = "meetrvyas7@gmail.com"},
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=0.1.0",
+    "langchain>=1.2.15",
+    "langchain-anthropic>=1.4.0",
+    "langchain-core>=1.2.25",
+    "langchain-google-genai>=4.2.1",
+    "langchain-groq>=1.1.2",
+    "langchain-openai>=1.1.12",
+    "langgraph>=1.1.5",
+    "requests>=2.28.0",
+    "streamlit>=1.56.0",
+]
+
+[project.scripts]
+pokedex-mcp-server = "pokedex_mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/MeetRVyas/pokedex-mcp-server"
+Repository = "https://github.com/MeetRVyas/pokedex-mcp-server"
+Issues = "https://github.com/MeetRVyas/pokedex-mcp-server/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pokedex_mcp"]
