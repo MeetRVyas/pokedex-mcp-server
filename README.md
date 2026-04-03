@@ -34,7 +34,7 @@ A live Pokédex as an MCP server — look up Pokémon, register trainers, and ma
 ### 1. Install dependencies
 
 ```bash
-pip install streamlit fastmcp requests langchain langchain-core
+pip install streamlit fastmcp requests langchain langchain-core langgraph
 
 # Install the SDK for your chosen provider:
 pip install langchain-openai          # OpenAI
