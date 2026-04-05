@@ -13,7 +13,7 @@ from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import ToolNode
 
 
-MCP_SERVER_URL = "http://localhost:8000/mcp" # Change after deployed
+MCP_SERVER_URL = "https://pokedex-mcp-server-production.up.railway.app/mcp"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LangChain Tool Definitions
