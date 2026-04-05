@@ -4,8 +4,10 @@ WORKDIR /app
 
 COPY pyproject.toml .
 COPY pokedex_mcp/ ./pokedex_mcp/
+COPY README.md .
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir .
 
 EXPOSE 8000
 

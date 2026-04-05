@@ -3,13 +3,13 @@
 import json
 import requests
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 from fastmcp import FastMCP
 
 mcp = FastMCP("Pokédex MCP Server")
 
 # Simple JSON file for persistent trainer data
-DATA_FILE = Path(__file__).parent / "trainers.json"
+DATA_FILE = Path("/data/trainers.json")
 
 
 def load_data() -> Dict:
