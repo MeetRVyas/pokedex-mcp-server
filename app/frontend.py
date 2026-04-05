@@ -11,7 +11,7 @@ import time
 import tempfile
 import streamlit as st
 import streamlit.components.v1 as components
-from backend import MCPClient, PROVIDER_MODELS, get_response, SYSTEM_PROMPT
+from backend import PROVIDER_MODELS, get_response, SYSTEM_PROMPT
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Page config
@@ -240,11 +240,11 @@ def get_env_api_key(provider_name: str) -> str:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "mcp" not in st.session_state:
-    st.session_state.mcp = None
+# if "mcp" not in st.session_state:
+#     st.session_state.mcp = None
 
-if "mcp_ready" not in st.session_state:
-    st.session_state.mcp_ready = False
+# if "mcp_ready" not in st.session_state:
+#     st.session_state.mcp_ready = False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -312,31 +312,30 @@ with st.sidebar:
     st.divider()
 
     # MCP Server Status & Controls
-    if st.session_state.mcp_ready:
-        st.markdown('<span class="status-badge status-online">● MCP SERVER ONLINE</span>', unsafe_allow_html=True)
-    else:
-        st.markdown('<span class="status-badge status-offline">○ MCP SERVER OFFLINE</span>', unsafe_allow_html=True)
+    # if st.session_state.mcp_ready:
+    #     st.markdown('<span class="status-badge status-online">● MCP SERVER ONLINE</span>', unsafe_allow_html=True)
+    # else:
+    #     st.markdown('<span class="status-badge status-offline">○ MCP SERVER OFFLINE</span>', unsafe_allow_html=True)
 
-    if st.button("▶ START MCP SERVER"):
-        if st.session_state.mcp and st.session_state.mcp_ready:
-            st.info("Already running!")
-        else:
-            with st.spinner("Starting Pokédex MCP server..."):
-                try:
-                    mcp = MCPClient()
-                    mcp.start()
-                    st.session_state.mcp = mcp
-                    st.session_state.mcp_ready = True
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Failed to start MCP server: {e}")
+    # if st.button("▶ START MCP SERVER"):
+    #     if st.session_state.mcp and st.session_state.mcp_ready:
+    #         st.info("Already running!")
+    #     else:
+    #         with st.spinner("Starting Pokédex MCP server..."):
+    #             try:
+    #                 mcp = MCPClient   #                 mcp.start()
+    #                 st.session_state.mcp = mcp
+    #                 st.session_state.mcp_ready = True
+    #                 st.rerun()
+    #             except Exception as e:
+    #                 st.error(f"Failed to start MCP server: {e}")
 
-    if st.button("■ STOP SERVER"):
-        if st.session_state.mcp:
-            st.session_state.mcp.stop()
-            st.session_state.mcp = None
-            st.session_state.mcp_ready = False
-            st.rerun()
+    # if st.button("■ STOP SERVER"):
+    #     if st.session_state.mcp:
+    #         st.session_state.mcp.stop()
+    #         st.session_state.mcp = None
+    #         st.session_state.mcp_ready = False
+    #         st.rerun()
 
     st.divider()
 
@@ -395,9 +394,9 @@ for msg in st.session_state.messages:
 
 if prompt := st.chat_input("Ask about Pokémon or manage your trainer..."):
 
-    if not st.session_state.mcp_ready:
-        st.warning("⚠️ Please start the MCP server first (sidebar → START MCP SERVER).")
-        st.stop()
+    # if not st.session_state.mcp_ready:
+    #     st.warning("⚠️ Please start the MCP server first (sidebar → START MCP SERVER).")
+    #     st.stop()
 
     if not api_key:
         st.warning("⚠️ Please enter your API key or load it from a .env file.")
@@ -417,7 +416,7 @@ if prompt := st.chat_input("Ask about Pokémon or manage your trainer..."):
                     model=model,
                     api_key=api_key,
                     messages=llm_messages,
-                    mcp=st.session_state.mcp,
+                    # mcp=st.session_state.mcp,
                 )
                 st.markdown(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})

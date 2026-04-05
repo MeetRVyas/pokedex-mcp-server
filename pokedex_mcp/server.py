@@ -178,7 +178,14 @@ def remove_pokemon(trainer_name: str, pokemon_name: str) -> str:
 # ─────────────────────────────────────────
 
 def main():
-    mcp.run()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--transport", default="streamable-http", choices=["stdio", "sse", "streamable-http"])
+    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=8000)
+    args = parser.parse_args()
+
+    mcp.run(transport=args.transport, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

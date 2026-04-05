@@ -2,13 +2,8 @@
 backend.py — Pokédex MCP Chatbot Backend (LangGraph Version)
 """
 
-import json
-import subprocess
-import sys
-import time
-import threading
-from pathlib import Path
-from typing import Any, Optional
+import asyncio
+from fastmcp import Client
 
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.tools import tool
@@ -17,127 +12,52 @@ from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import ToolNode
 
-# ─────────────────────────────────────────────────────────────────────────────
-# MCP Server process manager (stdio transport)
-# ─────────────────────────────────────────────────────────────────────────────
 
-SERVER_PATH = Path(__file__).parent.parent / "pokedex_mcp" / "server.py"
-
-class MCPClient:
-    """
-    Talks to the Pokédex MCP server over stdin/stdout (JSON-RPC 2.0).
-    Spawns the server as a subprocess and keeps it alive for the session.
-    """
-
-    def __init__(self):
-        self.proc: Optional[subprocess.Popen] = None
-        self._id = 0
-        self._lock = threading.Lock()
-        self._initialized = False
-
-    def _next_id(self) -> int:
-        self._id += 1
-        return self._id
-
-    def start(self):
-        """Spawn the MCP server subprocess."""
-        self.proc = subprocess.Popen(
-            [sys.executable, str(SERVER_PATH)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
-        time.sleep(0.5)
-        self._do_initialize()
-
-    def _send(self, method: str, params: dict) -> Any:
-        if self.proc is None or self.proc.poll() is not None:
-            raise RuntimeError("MCP server is not running.")
-
-        msg = {
-            "jsonrpc": "2.0",
-            "id": self._next_id(),
-            "method": method,
-            "params": params,
-        }
-        with self._lock:
-            self.proc.stdin.write(json.dumps(msg) + "\n")
-            self.proc.stdin.flush()
-            raw = self.proc.stdout.readline()
-            if not raw.strip():
-                raise RuntimeError("Empty response from MCP server.")
-            response = json.loads(raw.strip())
-
-        if "error" in response:
-            raise RuntimeError(f"MCP error: {response['error']}")
-        return response.get("result")
-
-    def _do_initialize(self):
-        self._send("initialize", {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {},
-            "clientInfo": {"name": "pokedex-chatbot", "version": "1.0.0"},
-        })
-        self._initialized = True
-
-    def call_tool(self, tool_name: str, arguments: dict) -> str:
-        """Call an MCP tool and return the result as a string."""
-        result = self._send("tools/call", {
-            "name": tool_name,
-            "arguments": arguments,
-        })
-        if isinstance(result, dict) and "content" in result:
-            parts = result["content"]
-            return "\n".join(
-                block.get("text", str(block))
-                for block in parts
-                if isinstance(block, dict)
-            )
-        return str(result)
-
-    def list_tools(self) -> list:
-        result = self._send("tools/list", {})
-        return result.get("tools", []) if isinstance(result, dict) else []
-
-    def stop(self):
-        if self.proc and self.proc.poll() is None:
-            self.proc.terminate()
-            self.proc.wait(timeout=5)
-
+MCP_SERVER_URL = "http://localhost:8000/mcp" # Change after deployed
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LangChain Tool Definitions
 # ─────────────────────────────────────────────────────────────────────────────
 
-def get_mcp_tools(mcp: MCPClient):
-    """Returns a list of LangChain @tool definitions bound to the MCPClient."""
+def get_mcp_tools(server_url : str) :
+    """Returns a list of LangChain @tool definitions."""
+
+    def call(tool_name: str, args: dict) -> str:
+        async def _call():
+            async with Client(server_url) as client:
+                result = await client.call_tool(tool_name, args)
+                # result is a list of content blocks
+                print(result)
+                return "\n".join(
+                    block.text if hasattr(block, "text") else str(block)
+                    for block in result.content
+                )
+        return asyncio.run(_call())
 
     @tool
     def lookup_pokemon(name: str) -> str:
         """Look up a Pokémon by name. Returns types, stats, height, weight, and Pokédex description."""
-        return mcp.call_tool("lookup_pokemon", {"name": name})
+        return call("lookup_pokemon", {"name": name})
 
     @tool
     def register_trainer(trainer_name: str) -> str:
         """Register a new Pokémon trainer by name."""
-        return mcp.call_tool("register_trainer", {"trainer_name": trainer_name})
+        return call("register_trainer", {"trainer_name": trainer_name})
 
     @tool
     def get_trainer(trainer_name: str) -> str:
         """Get a trainer's profile and their Pokémon collection."""
-        return mcp.call_tool("get_trainer", {"trainer_name": trainer_name})
+        return call("get_trainer", {"trainer_name": trainer_name})
 
     @tool
     def add_pokemon(trainer_name: str, pokemon_name: str) -> str:
         """Add a Pokémon to a trainer's collection."""
-        return mcp.call_tool("add_pokemon", {"trainer_name": trainer_name, "pokemon_name": pokemon_name})
+        return call("add_pokemon", {"trainer_name": trainer_name, "pokemon_name": pokemon_name})
 
     @tool
     def remove_pokemon(trainer_name: str, pokemon_name: str) -> str:
         """Remove a Pokémon from a trainer's collection."""
-        return mcp.call_tool("remove_pokemon", {"trainer_name": trainer_name, "pokemon_name": pokemon_name})
+        return call("remove_pokemon", {"trainer_name": trainer_name, "pokemon_name": pokemon_name})
 
     return [lookup_pokemon, register_trainer, get_trainer, add_pokemon, remove_pokemon]
 
@@ -183,11 +103,11 @@ def _get_llm(provider: str, model: str, api_key: str):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def get_response(
-    provider: str,
-    model: str,
-    api_key: str,
-    messages: list,
-    mcp: MCPClient,
+    provider : str,
+    model : str,
+    api_key : str,
+    messages : list,
+    server_url : list = MCP_SERVER_URL
 ) -> str:
     """
     Route a conversation to the selected LLM provider using LangGraph.
@@ -196,7 +116,7 @@ def get_response(
     
     # 1. Instantiate the LLM & bind MCP tools
     llm = _get_llm(provider, model, api_key)
-    lc_tools = get_mcp_tools(mcp)
+    lc_tools = get_mcp_tools(server_url)
     llm_with_tools = llm.bind_tools(lc_tools)
 
     # 2. Build the LangGraph Workflow (StateGraph)
